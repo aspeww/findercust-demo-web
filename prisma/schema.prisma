@@ -1,0 +1,214 @@
+// Prisma schema for FinderCust CRM
+// Datasource: SQLite for zero-setup local dev. Swap to PostgreSQL for prod.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------------
+// Auth (Auth.js / NextAuth) — credentials-based
+// ----------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  passwordHash  String
+  emailVerified DateTime?
+  image         String?
+  role          String    @default("user") // "user" | "admin"
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  leads     Lead[]
+  projects  Project[]
+  activities Activity[]
+  searches  Search[]
+  emailLogs EmailLog[]
+  mailSetting MailSetting?
+  sessions  Session[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ----------------------------------------------------------------------------
+// CRM core
+// ----------------------------------------------------------------------------
+
+// Leads = businesses discovered (e.g. via Google Places) that may need a website.
+model Lead {
+  id            String   @id @default(cuid())
+  // Google Places
+  placeId       String?  @unique
+  name          String
+  category      String?
+  phone         String?
+  email         String?
+  website       String?  // null/empty = candidate (no website)
+  address       String?
+  city          String?
+  country       String?
+  lat           Float?
+  lng           Float?
+  rating        Float?
+  reviewsCount  Int?
+
+  // CRM pipeline
+  status        String   @default("new")
+  // "new" | "contacted" | "interested" | "negotiating" | "won" | "lost" | "archived"
+  notes         String?
+  source        String   @default("google_maps") // "google_maps" | "manual" | "import"
+
+  ownerId       String?
+  owner         User?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  projects      Project[]
+  activities    Activity[]
+  emailLogs     EmailLog[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status])
+  @@index([city])
+  @@index([ownerId])
+}
+
+// A Project is the website you build/sell to a lead.
+model Project {
+  id          String   @id @default(cuid())
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  ownerId     String?
+  owner       User?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  title       String
+  description String?
+  status      String   @default("draft")
+  // "draft" | "in_progress" | "review" | "delivered" | "cancelled"
+  priceCents  Int?
+  currency    String   @default("TRY")
+
+  // The website you assigned/built for this business
+  liveUrl     String?
+  previewUrl  String?
+  repoUrl     String?
+
+  // AI-generated website
+  generatedHtml String?  // full standalone HTML
+  generatedCss  String?  // separated CSS (when AI returns split)
+  aiPrompt      String?  // last prompt used
+  aiModel       String?  // e.g. "gpt-4o-mini", "template"
+  generatedAt   DateTime?
+
+  startedAt   DateTime?
+  deliveredAt DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([leadId])
+  @@index([status])
+}
+
+// Timeline entries on a Lead (call, email, note, status change).
+model Activity {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  type      String   // "note" | "call" | "email" | "status_change" | "meeting"
+  content   String
+
+  createdAt DateTime @default(now())
+
+  @@index([leadId])
+  @@index([createdAt])
+}
+
+// ----------------------------------------------------------------------------
+// Search history (Yeni Arama / Geçmiş Aramalar)
+// ----------------------------------------------------------------------------
+model Search {
+  id              String   @id @default(cuid())
+  ownerId         String
+  owner           User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  country         String   @default("Türkiye")
+  city            String
+  district        String?
+  radiusKm        Int      @default(10)
+  sector          String
+  segment         String?
+
+  status          String   @default("partial") // partial | completed | failed
+  resultCount     Int      @default(0)
+  resultsJson     String   // JSON-encoded array of results
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([createdAt])
+}
+
+// ----------------------------------------------------------------------------
+// Outreach (SMTP / cold email)
+// ----------------------------------------------------------------------------
+
+// Per-user mail settings (singleton via @unique userId).
+model MailSetting {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  smtpHost    String?
+  smtpPort    Int?     @default(587)
+  smtpSecure  Boolean  @default(false)
+  smtpUser    String?
+  smtpPass    String?  // plain — local app; consider encrypting for prod
+  fromEmail   String?
+  fromName    String?
+  replyTo     String?
+  signature   String?  // appended to email body
+  defaultSubject String? @default("İşletmenize özel web sitesi teklifi")
+  defaultBody    String? // template with {{name}}, {{category}}, {{city}} placeholders
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EmailLog {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  toEmail   String
+  fromEmail String
+  subject   String
+  body      String   // rendered body sent
+  status    String   @default("sent") // "sent" | "failed"
+  error     String?
+  messageId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([leadId])
+  @@index([userId])
+  @@index([createdAt])
+}
