@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { ensureDemoReady } from "@/lib/demo-bootstrap";
 
 declare module "next-auth" {
   interface Session {
@@ -32,6 +33,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(raw) {
         const parsed = credentialsSchema.safeParse(raw);
         if (!parsed.success) return null;
+
+        await ensureDemoReady();
 
         const { email, password } = parsed.data;
         const user = await prisma.user.findUnique({

@@ -3,7 +3,7 @@
   "buildCommand": "npm run vercel-build",
   "framework": "nextjs",
   "env": {
-    "DATABASE_URL": "file:./prisma/demo.db",
+    "DATABASE_URL": "file:./demo.db",
     "DEMO_MODE": "true",
     "NEXT_PUBLIC_DEMO_MODE": "true",
     "DEMO_SEED": "true",
