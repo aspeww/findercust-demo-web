@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 import { auth } from "@/lib/auth";
+import { demoApiBlocked } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -8,6 +9,9 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const blocked = demoApiBlocked();
+  if (blocked) return blocked;
+
   const { id } = await params;
   const session = await auth();
   if (!session?.user) {

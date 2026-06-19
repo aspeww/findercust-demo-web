@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth";
+import { getDemoCredentials, isDemoMode } from "@/lib/demo";
 import { MapPin, Search, Briefcase, ArrowRight } from "lucide-react";
 
 export default async function HomePage() {
   const session = await auth();
+  const demoMode = isDemoMode();
+  const demo = demoMode ? getDemoCredentials() : null;
 
   return (
     <main className="flex-1">
@@ -24,9 +27,11 @@ export default async function HomePage() {
                 <Button asChild size="sm" variant="ghost">
                   <Link href="/login">Giriş yap</Link>
                 </Button>
-                <Button asChild size="sm">
-                  <Link href="/register">Kayıt ol</Link>
-                </Button>
+                {!demoMode && (
+                  <Button asChild size="sm">
+                    <Link href="/register">Kayıt ol</Link>
+                  </Button>
+                )}
               </>
             )}
           </nav>
@@ -36,7 +41,7 @@ export default async function HomePage() {
       <section className="mx-auto max-w-6xl px-6 py-24">
         <div className="max-w-2xl">
           <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs text-muted-foreground">
-            Adım 1 — Temel altyapı kuruldu
+            {demoMode ? "Canlı demo — salt okunur" : "Adım 1 — Temel altyapı kuruldu"}
           </span>
           <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-5xl">
             Web sitesi olmayan işletmeleri bul,{" "}
@@ -49,15 +54,34 @@ export default async function HomePage() {
             işletmeleri lead olarak kaydet, satış sürecini ve teslim ettiğin
             siteleri tek panelden yönet.
           </p>
+
+          {demoMode && demo && (
+            <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+              <p className="font-medium">Demo hesabı ile giriş yapın</p>
+              <p className="mt-2">
+                E-posta: <code className="rounded bg-white px-1.5 py-0.5">{demo.email}</code>
+              </p>
+              <p className="mt-1">
+                Şifre: <code className="rounded bg-white px-1.5 py-0.5">{demo.password}</code>
+              </p>
+              <p className="mt-2 text-amber-800">
+                Paneli gezebilirsiniz; veri değiştirme ve export devre dışıdır.
+              </p>
+            </div>
+          )}
+
           <div className="mt-8 flex gap-3">
             <Button asChild size="lg">
-              <Link href={session?.user ? "/dashboard" : "/register"}>
-                Hemen başla <ArrowRight className="size-4" />
+              <Link href={session?.user ? "/dashboard" : "/login"}>
+                {demoMode ? "Demo paneli" : "Hemen başla"}{" "}
+                <ArrowRight className="size-4" />
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="/login">Giriş yap</Link>
-            </Button>
+            {!session?.user && (
+              <Button asChild size="lg" variant="outline">
+                <Link href="/login">Giriş yap</Link>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -66,19 +90,19 @@ export default async function HomePage() {
             icon={<Search className="size-5" />}
             title="Maps ile keşfet"
             desc="Şehir / kategori bazlı tarama. Web sitesi olmayanları otomatik filtrele."
-            badge="Adım 2"
+            badge="Discover"
           />
           <FeatureCard
             icon={<Briefcase className="size-5" />}
             title="CRM pipeline"
             desc="Yeni → İletişim → İlgili → Pazarlık → Kazanıldı / Kaybedildi."
-            badge="Adım 3"
+            badge="Leads"
           />
           <FeatureCard
             icon={<MapPin className="size-5" />}
             title="Site teslimi"
             desc="Her lead için proje, fiyat, canlı URL ve teslim tarihi."
-            badge="Adım 4"
+            badge="Projects"
           />
         </div>
       </section>

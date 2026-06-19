@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { demoMutationError } from "@/lib/demo";
 import { TR_CITIES, TR_CITIES_WITH_DISTRICTS, SECTORS } from "@/lib/geo-data";
 
 const GOOGLE_PLACES_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText";
@@ -566,6 +567,9 @@ export async function createSearch(
   _prev: NewSearchState | undefined,
   formData: FormData,
 ): Promise<NewSearchState> {
+  const blocked = demoMutationError();
+  if (blocked) return blocked;
+
   const userId = await requireUserId();
 
   const parsed = newSearchSchema.safeParse({
@@ -613,6 +617,8 @@ export async function createSearch(
 }
 
 export async function deleteSearch(id: string) {
+  const blocked = demoMutationError();
+  if (blocked) return blocked;
   const userId = await requireUserId();
   await prisma.search.deleteMany({ where: { id, ownerId: userId } });
   revalidatePath("/discover");
@@ -621,7 +627,9 @@ export async function deleteSearch(id: string) {
 export async function importSearchResults(
   searchId: string,
   placeIds: string[],
-): Promise<{ imported: number }> {
+): Promise<{ imported: number; error?: string }> {
+  const blocked = demoMutationError();
+  if (blocked) return { imported: 0, error: blocked.error };
   const userId = await requireUserId();
   const search = await prisma.search.findFirst({
     where: { id: searchId, ownerId: userId },

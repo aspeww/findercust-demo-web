@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { signIn, signOut } from "@/lib/auth";
+import { demoMutationError, isDemoMode } from "@/lib/demo";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Ad en az 2 karakter").max(80),
@@ -22,6 +23,9 @@ export async function registerAction(
   _prev: AuthFormState | undefined,
   formData: FormData,
 ): Promise<AuthFormState> {
+  const blocked = demoMutationError();
+  if (blocked) return blocked;
+
   const parsed = registerSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),

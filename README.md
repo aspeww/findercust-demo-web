@@ -1,6 +1,6 @@
 # FinderCust Demo Web
 
-Google Maps üzerinden işletme keşfi, CRM pipeline, AI web sitesi üretimi ve SMTP outreach otomasyonu içeren canlı demo uygulaması.
+Google Maps üzerinden işletme keşfi, CRM pipeline, AI web sitesi üretimi ve SMTP outreach otomasyonu içeren **salt okunur canlı demo** uygulaması.
 
 ## Demo Giriş
 
@@ -8,6 +8,8 @@ Google Maps üzerinden işletme keşfi, CRM pipeline, AI web sitesi üretimi ve 
 |------|-------|
 | E-posta | `demo@findercust.com` |
 | Şifre | `Demo123!` |
+
+Demo modunda paneli gezebilirsiniz; kayıt, düzenleme, silme, export ve e-posta gönderimi devre dışıdır.
 
 ## Hızlı Başlangıç (Yerel)
 
@@ -23,22 +25,29 @@ npm run dev
 
 Uygulama: http://localhost:3000
 
-## Canlı Yayın (Docker / Submail SMTP)
+## Vercel Deploy
 
-SMTP outreach için Ayarlar ekranından Submail veya herhangi bir SMTP sağlayıcısı ekleyin. Çoklu SMTP profili ve otomasyon motoru desteklenir.
+1. Repoyu GitHub'a push edin
+2. [Vercel](https://vercel.com) → Import Project
+3. Ortam değişkenlerini ekleyin (`.env.example` referans):
 
-### 1. Ortam değişkenleri
+| Değişken | Değer |
+|----------|-------|
+| `DATABASE_URL` | `file:./prisma/demo.db` |
+| `AUTH_SECRET` | `openssl rand -base64 32` ile üretin |
+| `AUTH_TRUST_HOST` | `true` |
+| `DEMO_MODE` | `true` |
+| `NEXT_PUBLIC_DEMO_MODE` | `true` |
+| `DEMO_SEED` | `true` |
+| `DEMO_USER_EMAIL` | `demo@findercust.com` |
+| `DEMO_USER_PASSWORD` | `Demo123!` |
+| `GEMINI_FORCE_TEMPLATE` | `true` |
 
-```bash
-cp .env.example .env
-```
+Build komutu `vercel.json` içinde tanımlıdır: migration + seed + Next.js build.
 
-Zorunlu:
+> **Not:** Vercel serverless ortamında SQLite salt okunur demo için uygundur. Veri build sırasında seed edilir.
 
-- `AUTH_SECRET` — `openssl rand -base64 32`
-- `GOOGLE_MAPS_API_KEY` — Discover araması için (opsiyonel demo modunda)
-
-### 2. Docker Compose ile deploy
+## Docker Deploy (Alternatif)
 
 ```bash
 docker compose up -d --build
@@ -46,34 +55,12 @@ docker compose up -d --build
 
 İlk açılışta migration + demo seed otomatik çalışır (`DEMO_SEED=true`).
 
-### 3. Reverse proxy (ör. Nginx + subdomain)
-
-```nginx
-server {
-  listen 443 ssl;
-  server_name demo.sizindomain.com;
-
-  location / {
-    proxy_pass http://127.0.0.1:3000;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-  }
-}
-```
-
-`AUTH_TRUST_HOST=true` production için gereklidir.
-
 ## Özellikler
 
-- **Discover** — Google Places ile işletme arama
-- **Leads & Pipeline** — CRM ve durum takibi
-- **Projects** — AI ile web sitesi üretimi (Gemini veya şablon)
-- **Outreach** — Tekil/toplu e-posta, çoklu SMTP profili
-- **Otomasyon** — Yeni lead'lere sıralı SMTP rotasyonu ile mail gönderimi
+- **Discover** — Google Places ile işletme arama (demo modunda yeni arama kapalı)
+- **Leads & Pipeline** — CRM ve durum takibi (salt okunur)
+- **Projects** — AI ile web sitesi üretimi (demo modunda kapalı)
+- **Outreach** — E-posta otomasyonu (demo modunda kapalı)
 
 ## Komutlar
 
@@ -81,7 +68,7 @@ server {
 |-------|----------|
 | `npm run dev` | Geliştirme sunucusu |
 | `npm run build` | Production build |
-| `npm run db:migrate` | Migration |
+| `npm run vercel-build` | Vercel build (migrate + seed + build) |
 | `npm run db:seed` | Demo verisi yükle |
 | `npm run db:reset` | DB sıfırla + seed |
 
@@ -89,8 +76,7 @@ server {
 
 - `.env` dosyasını asla commit etmeyin
 - Production'da güçlü `AUTH_SECRET` kullanın
-- SMTP şifreleri veritabanında saklanır; production için şifreleme önerilir
-- Demo ortamında `GEMINI_FORCE_TEMPLATE=true` API maliyetini düşürür
+- Demo ortamında `DEMO_MODE=true` tüm yazma işlemlerini engeller
 
 ## Repo
 

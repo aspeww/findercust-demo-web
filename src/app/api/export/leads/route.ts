@@ -1,10 +1,14 @@
 import { NextRequest } from "next/server";
 import ExcelJS from "exceljs";
 import { auth } from "@/lib/auth";
+import { demoApiBlocked } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { LEAD_STATUS_LABEL, type LeadStatus } from "@/lib/domain";
 
 export async function GET(req: NextRequest) {
+  const blocked = demoApiBlocked();
+  if (blocked) return blocked;
+
   const session = await auth();
   if (!session?.user) {
     return new Response("Unauthorized", { status: 401 });

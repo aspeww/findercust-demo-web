@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { demoMutationBlocked, demoMutationError } from "@/lib/demo";
 import { LEAD_STATUSES } from "@/lib/domain";
 
 async function requireUserId(): Promise<string> {
@@ -40,6 +41,8 @@ function clean<T extends Record<string, unknown>>(obj: T): T {
 }
 
 export async function createLead(formData: FormData) {
+  const blocked = demoMutationError();
+  if (blocked) return blocked;
   const userId = await requireUserId();
   const parsed = leadSchema.safeParse(
     clean(Object.fromEntries(formData.entries())),
@@ -57,6 +60,8 @@ export async function createLead(formData: FormData) {
 }
 
 export async function updateLead(id: string, formData: FormData) {
+  const blocked = demoMutationError();
+  if (blocked) return blocked;
   const userId = await requireUserId();
   const parsed = leadSchema.partial().safeParse(
     clean(Object.fromEntries(formData.entries())),
@@ -75,6 +80,8 @@ export async function updateLead(id: string, formData: FormData) {
 }
 
 export async function updateLeadStatus(id: string, status: string) {
+  const blocked = demoMutationError();
+  if (blocked) return blocked;
   const userId = await requireUserId();
   if (!LEAD_STATUSES.includes(status as (typeof LEAD_STATUSES)[number])) {
     return { error: "Geçersiz durum" };
@@ -104,6 +111,8 @@ export async function updateLeadStatus(id: string, status: string) {
 }
 
 export async function deleteLead(id: string) {
+  const blocked = demoMutationError();
+  if (blocked) return blocked;
   const userId = await requireUserId();
   await prisma.lead.deleteMany({ where: { id, ownerId: userId } });
   revalidatePath("/leads");
@@ -113,6 +122,8 @@ export async function deleteLead(id: string) {
 }
 
 export async function bulkDeleteLeads(ids: string[]) {
+  const blocked = demoMutationBlocked();
+  if (blocked) return blocked;
   const userId = await requireUserId();
   await prisma.lead.deleteMany({
     where: { id: { in: ids }, ownerId: userId },
@@ -124,6 +135,8 @@ export async function bulkDeleteLeads(ids: string[]) {
 }
 
 export async function bulkUpdateStatus(ids: string[], status: string) {
+  const blocked = demoMutationBlocked();
+  if (blocked) return blocked;
   const userId = await requireUserId();
   if (!LEAD_STATUSES.includes(status as (typeof LEAD_STATUSES)[number])) {
     return { error: "Geçersiz durum" };
@@ -170,6 +183,8 @@ export async function getNewLeadIdsForAutomation(limit?: number): Promise<string
 }
 
 export async function addActivity(formData: FormData) {
+  const blocked = demoMutationError();
+  if (blocked) return blocked;
   const userId = await requireUserId();
   const parsed = activitySchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {

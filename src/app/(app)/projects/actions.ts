@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { demoMutationBlocked, demoMutationError } from "@/lib/demo";
 import { PROJECT_STATUSES } from "@/lib/domain";
 
 async function requireUserId(): Promise<string> {
@@ -25,6 +26,8 @@ const projectSchema = z.object({
 });
 
 export async function createProject(formData: FormData) {
+  const blocked = demoMutationError();
+  if (blocked) return blocked;
   const userId = await requireUserId();
   const raw = Object.fromEntries(formData.entries());
   const parsed = projectSchema.safeParse({
@@ -49,6 +52,8 @@ export async function createProject(formData: FormData) {
 }
 
 export async function updateProject(id: string, formData: FormData) {
+  const blocked = demoMutationError();
+  if (blocked) return blocked;
   const userId = await requireUserId();
   const raw = Object.fromEntries(formData.entries());
   const parsed = projectSchema.partial().safeParse({
@@ -72,6 +77,8 @@ export async function updateProject(id: string, formData: FormData) {
 }
 
 export async function deleteProject(id: string) {
+  const blocked = demoMutationError();
+  if (blocked) return blocked;
   const userId = await requireUserId();
   await prisma.project.deleteMany({ where: { id, ownerId: userId } });
   revalidatePath("/projects");
@@ -92,6 +99,8 @@ export async function generateWebsiteForLead(
   leadId: string,
   opts?: { style?: "modern" | "classic" | "bold"; extra?: string },
 ): Promise<GenerateResult> {
+  const blocked = demoMutationBlocked();
+  if (blocked) return blocked;
   const userId = await requireUserId();
 
   const lead = await prisma.lead.findFirst({
@@ -160,6 +169,8 @@ export async function regenerateWebsite(
   projectId: string,
   opts?: { style?: "modern" | "classic" | "bold"; extra?: string },
 ): Promise<GenerateResult> {
+  const blocked = demoMutationBlocked();
+  if (blocked) return blocked;
   const userId = await requireUserId();
   const project = await prisma.project.findFirst({
     where: { id: projectId, ownerId: userId },
@@ -173,6 +184,8 @@ export async function updateProjectHtml(
   projectId: string,
   payload: { html?: string; css?: string },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  const blocked = demoMutationBlocked();
+  if (blocked) return blocked;
   const userId = await requireUserId();
   const project = await prisma.project.findFirst({
     where: { id: projectId, ownerId: userId },

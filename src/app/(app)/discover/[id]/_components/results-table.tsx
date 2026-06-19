@@ -130,6 +130,10 @@ export function ResultsTable({ searchId, results, createdAt }: Props) {
     }
     start(async () => {
       const res = await importSearchResults(searchId, Array.from(selected));
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
       toast.success(`${res.imported} işletme leads'e eklendi`);
       setSelected(new Set());
       router.refresh();

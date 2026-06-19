@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { demoApiBlocked } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import ExcelJS from "exceljs";
 import type { SearchResult } from "@/app/(app)/discover/actions";
@@ -9,6 +10,9 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const blocked = demoApiBlocked();
+  if (blocked) return blocked;
+
   const { id } = await params;
   const session = await auth();
   if (!session?.user) return new Response("Unauthorized", { status: 401 });

@@ -1,5 +1,6 @@
 "use client";
 
+import { demoMutationBlocked } from "@/lib/demo";
 import { getNewLeadIdsForAutomation } from "../actions";
 import {
   getOutreachAutomationProfiles,
@@ -167,6 +168,9 @@ export async function startAutomation(params: {
   minBatch: number;
   maxBatch: number;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
+  const blocked = demoMutationBlocked();
+  if (blocked) return blocked;
+
   if (state.running) return { ok: true };
 
   const min = params.minBatch;

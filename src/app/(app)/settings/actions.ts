@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { demoMutationBlocked, demoMutationError } from "@/lib/demo";
 import {
   bodyToHtml,
   getDefaultBodyTemplate,
@@ -239,6 +240,8 @@ export async function saveMailSettings(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
+  const blocked = demoMutationBlocked();
+  if (blocked) return blocked;
   const userId = await requireUserId();
   const raw = Object.fromEntries(formData.entries());
   const parsed = settingsSchema.safeParse({
@@ -301,6 +304,8 @@ export async function saveMailSettings(
 export async function createSmtpProfile(
   input: unknown,
 ): Promise<SmtpProfileActionState> {
+  const blocked = demoMutationBlocked();
+  if (blocked) return blocked;
   const userId = await requireUserId();
   const parsed = smtpProfileSchema.safeParse(input);
   if (!parsed.success) {
@@ -360,6 +365,8 @@ export async function createSmtpProfile(
 export async function activateSmtpProfile(
   profileId: string,
 ): Promise<SmtpProfileActionState> {
+  const blocked = demoMutationBlocked();
+  if (blocked) return blocked;
   const userId = await requireUserId();
   const normalizedProfileId = profileId.trim();
   if (!normalizedProfileId) return { ok: false, error: "Profil seçimi geçersiz" };
@@ -387,6 +394,8 @@ export async function sendTestEmail(toEmail: string): Promise<{
   ok: boolean;
   error?: string;
 }> {
+  const blocked = demoMutationBlocked();
+  if (blocked) return blocked;
   const userId = await requireUserId();
   const setting = await prisma.mailSetting.findUnique({ where: { userId } });
   if (!setting?.smtpHost || !setting?.smtpUser || !setting?.smtpPass || !setting?.fromEmail) {
@@ -426,6 +435,8 @@ export type OutreachResult =
 export async function sendOutreachEmail(
   input: OutreachInput,
 ): Promise<OutreachResult> {
+  const blocked = demoMutationBlocked();
+  if (blocked) return blocked;
   const userId = await requireUserId();
   const setting = await prisma.mailSetting.findUnique({ where: { userId } });
   const resolvedMailer = resolveMailerConfig(setting, input.smtpProfileId);

@@ -204,6 +204,8 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
         toast.success(`${res.count} lead silindi`);
         setSelected(new Set());
         router.refresh();
+      } else {
+        toast.error(res.error);
       }
     });
   };
@@ -213,11 +215,13 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
     const ids = Array.from(selected);
     start(async () => {
       const res = await bulkUpdateStatus(ids, bulkStatus);
-      if ("ok" in res) {
+      if ("ok" in res && res.ok) {
         toast.success(`${ids.length} lead güncellendi`);
         setSelected(new Set());
         setBulkStatus("");
         router.refresh();
+      } else if ("error" in res) {
+        toast.error(res.error);
       }
     });
   };

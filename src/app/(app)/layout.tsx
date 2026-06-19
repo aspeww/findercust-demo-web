@@ -13,7 +13,10 @@ import {
 } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { logoutAction } from "../(auth)/actions";
+import { DemoBanner } from "@/components/demo-banner";
+import { DemoRestrictions } from "@/components/demo-restrictions";
 import { Button } from "@/components/ui/button";
+import { isDemoMode } from "@/lib/demo";
 import { cn } from "@/lib/utils";
 
 const nav = [
@@ -33,9 +36,11 @@ export default async function DashboardLayout({
 }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
+  const demoMode = isDemoMode();
 
   return (
     <div className="flex min-h-screen">
+      <DemoRestrictions enabled={demoMode} />
       <aside className="flex w-64 flex-col border-r bg-card">
         <div className="flex h-16 items-center gap-2 border-b px-6 font-semibold">
           <Compass className="size-5" />
@@ -64,7 +69,7 @@ export default async function DashboardLayout({
           <div className="px-3 pb-2 text-xs text-muted-foreground">
             {session.user.email}
           </div>
-          <form action={logoutAction}>
+          <form action={logoutAction} data-demo-allow="true">
             <Button
               type="submit"
               variant="ghost"
@@ -77,6 +82,7 @@ export default async function DashboardLayout({
         </div>
       </aside>
       <main className="flex-1 bg-background">
+        <DemoBanner />
         <div className="mx-auto max-w-6xl p-8">{children}</div>
       </main>
     </div>
