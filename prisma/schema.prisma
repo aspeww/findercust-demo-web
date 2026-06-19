@@ -183,6 +183,8 @@ model MailSetting {
   fromEmail   String?
   fromName    String?
   replyTo     String?
+  smtpProfilesJson   String? @default("[]") // JSON array of named SMTP profiles
+  activeSmtpProfileId String?
   signature   String?  // appended to email body
   defaultSubject String? @default("İşletmenize özel web sitesi teklifi")
   defaultBody    String? // template with {{name}}, {{category}}, {{city}} placeholders

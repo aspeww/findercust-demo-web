@@ -2,15 +2,18 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Save, Send, Loader2 } from "lucide-react";
+import { Save, Send, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  activateSmtpProfile,
+  createSmtpProfile,
   saveMailSettings,
   sendTestEmail,
+  type SmtpProfile,
   type SettingsState,
 } from "../actions";
 
@@ -26,6 +29,8 @@ type Initial = {
   signature: string;
   defaultSubject: string;
   defaultBody: string;
+  activeSmtpProfileId: string | null;
+  smtpProfiles: SmtpProfile[];
 };
 
 export function SettingsForm({ initial }: { initial: Initial }) {
@@ -36,6 +41,21 @@ export function SettingsForm({ initial }: { initial: Initial }) {
 
   const [testTo, setTestTo] = useState("");
   const [testing, startTest] = useTransition();
+  const [profiles, setProfiles] = useState<SmtpProfile[]>(initial.smtpProfiles);
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(
+    initial.activeSmtpProfileId,
+  );
+  const [profileName, setProfileName] = useState("");
+  const [profilePending, startProfileTransition] = useTransition();
+
+  const [smtpHost, setSmtpHost] = useState(initial.smtpHost);
+  const [smtpPort, setSmtpPort] = useState(String(initial.smtpPort));
+  const [smtpSecure, setSmtpSecure] = useState(initial.smtpSecure);
+  const [smtpUser, setSmtpUser] = useState(initial.smtpUser);
+  const [smtpPass, setSmtpPass] = useState(initial.smtpPass);
+  const [fromEmail, setFromEmail] = useState(initial.fromEmail);
+  const [fromName, setFromName] = useState(initial.fromName);
+  const [replyTo, setReplyTo] = useState(initial.replyTo);
 
   // Show toast based on action result
   if (state?.ok === true) {
@@ -57,6 +77,68 @@ export function SettingsForm({ initial }: { initial: Initial }) {
     });
   };
 
+  const currentProfilePayload = () => ({
+    smtpHost: smtpHost.trim(),
+    smtpPort: Number(smtpPort),
+    smtpSecure,
+    smtpUser: smtpUser.trim(),
+    smtpPass,
+    fromEmail: fromEmail.trim(),
+    fromName: fromName.trim() || null,
+    replyTo: replyTo.trim() || null,
+  });
+
+  const loadProfile = (profile: SmtpProfile) => {
+    setSmtpHost(profile.smtpHost);
+    setSmtpPort(String(profile.smtpPort));
+    setSmtpSecure(profile.smtpSecure);
+    setSmtpUser(profile.smtpUser);
+    setSmtpPass(profile.smtpPass);
+    setFromEmail(profile.fromEmail);
+    setFromName(profile.fromName ?? "");
+    setReplyTo(profile.replyTo ?? "");
+  };
+
+  const onCreateProfile = () => {
+    if (!profileName.trim()) {
+      toast.warning("Profil adı zorunlu");
+      return;
+    }
+    startProfileTransition(async () => {
+      const result = await createSmtpProfile({
+        name: profileName.trim(),
+        ...currentProfilePayload(),
+      });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      const newProfile: SmtpProfile = {
+        id: result.activeProfileId,
+        name: profileName.trim(),
+        ...currentProfilePayload(),
+        createdAt: new Date().toISOString(),
+      };
+      setProfiles((prev) => [newProfile, ...prev]);
+      setActiveProfileId(result.activeProfileId);
+      setProfileName("");
+      toast.success("SMTP profili oluşturuldu ve aktif edildi");
+    });
+  };
+
+  const onActivateProfile = (profile: SmtpProfile) => {
+    startProfileTransition(async () => {
+      const result = await activateSmtpProfile(profile.id);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      setActiveProfileId(profile.id);
+      loadProfile(profile);
+      toast.success(`Aktif profil: ${profile.name}`);
+    });
+  };
+
   return (
     <form action={formAction} className="space-y-6">
       <Card>
@@ -74,7 +156,8 @@ export function SettingsForm({ initial }: { initial: Initial }) {
               <Input
                 id="smtpHost"
                 name="smtpHost"
-                defaultValue={initial.smtpHost}
+                value={smtpHost}
+                onChange={(e) => setSmtpHost(e.target.value)}
                 placeholder="smtp.gmail.com"
                 required
               />
@@ -86,7 +169,8 @@ export function SettingsForm({ initial }: { initial: Initial }) {
                   id="smtpPort"
                   name="smtpPort"
                   type="number"
-                  defaultValue={initial.smtpPort}
+                  value={smtpPort}
+                  onChange={(e) => setSmtpPort(e.target.value)}
                   required
                 />
               </div>
@@ -99,7 +183,8 @@ export function SettingsForm({ initial }: { initial: Initial }) {
                     id="smtpSecure"
                     name="smtpSecure"
                     type="checkbox"
-                    defaultChecked={initial.smtpSecure}
+                    checked={smtpSecure}
+                    onChange={(e) => setSmtpSecure(e.target.checked)}
                   />
                   TLS
                 </label>
@@ -110,7 +195,8 @@ export function SettingsForm({ initial }: { initial: Initial }) {
               <Input
                 id="smtpUser"
                 name="smtpUser"
-                defaultValue={initial.smtpUser}
+                value={smtpUser}
+                onChange={(e) => setSmtpUser(e.target.value)}
                 placeholder="user@example.com"
                 required
               />
@@ -121,7 +207,8 @@ export function SettingsForm({ initial }: { initial: Initial }) {
                 id="smtpPass"
                 name="smtpPass"
                 type="password"
-                defaultValue={initial.smtpPass}
+                value={smtpPass}
+                onChange={(e) => setSmtpPass(e.target.value)}
                 required
               />
             </div>
@@ -134,7 +221,8 @@ export function SettingsForm({ initial }: { initial: Initial }) {
                 id="fromEmail"
                 name="fromEmail"
                 type="email"
-                defaultValue={initial.fromEmail}
+                value={fromEmail}
+                onChange={(e) => setFromEmail(e.target.value)}
                 required
               />
             </div>
@@ -143,7 +231,8 @@ export function SettingsForm({ initial }: { initial: Initial }) {
               <Input
                 id="fromName"
                 name="fromName"
-                defaultValue={initial.fromName}
+                value={fromName}
+                onChange={(e) => setFromName(e.target.value)}
                 placeholder="Ahmet — FinderCust"
               />
             </div>
@@ -153,9 +242,63 @@ export function SettingsForm({ initial }: { initial: Initial }) {
                 id="replyTo"
                 name="replyTo"
                 type="email"
-                defaultValue={initial.replyTo}
+                value={replyTo}
+                onChange={(e) => setReplyTo(e.target.value)}
               />
             </div>
+          </div>
+
+          <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
+            <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+              <Input
+                value={profileName}
+                onChange={(e) => setProfileName(e.target.value)}
+                placeholder="Yeni profil adı (örn: Gmail Satış)"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={onCreateProfile}
+                disabled={profilePending}
+              >
+                {profilePending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Plus className="size-4" />
+                )}
+                Profili oluştur
+              </Button>
+            </div>
+
+            {profiles.length > 0 ? (
+              <div className="grid gap-2">
+                {profiles.map((profile) => (
+                  <div
+                    key={profile.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-background px-3 py-2"
+                  >
+                    <div>
+                      <div className="text-sm font-medium">{profile.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {profile.fromEmail} • {profile.smtpHost}:{profile.smtpPort}
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant={activeProfileId === profile.id ? "default" : "outline"}
+                      onClick={() => onActivateProfile(profile)}
+                      disabled={profilePending}
+                    >
+                      {activeProfileId === profile.id ? "Aktif" : "Aktif yap"}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Henüz profil yok. Üstteki bilgileri doldurup profil oluşturabilirsin.
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

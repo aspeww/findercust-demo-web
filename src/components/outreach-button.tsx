@@ -8,6 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -20,6 +27,12 @@ import {
   getOutreachPreview,
   sendOutreachEmail,
 } from "@/app/(app)/settings/actions";
+
+type SmtpProfileOption = {
+  id: string;
+  name: string;
+  fromEmail: string;
+};
 
 export function OutreachButton({
   leadId,
@@ -34,7 +47,13 @@ export function OutreachButton({
   const [to, setTo] = useState(defaultEmail ?? "");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [smtpProfiles, setSmtpProfiles] = useState<SmtpProfileOption[]>([]);
+  const [selectedSmtpProfileId, setSelectedSmtpProfileId] = useState<string | null>(
+    null,
+  );
   const [pending, start] = useTransition();
+
+  const selectedSmtpValue = selectedSmtpProfileId ?? "default";
 
   useEffect(() => {
     if (!open || loaded) return;
@@ -45,6 +64,8 @@ export function OutreachButton({
         setBody(p.body);
         setTo((prev) => prev || p.to);
         setHasSettings(p.hasSettings);
+        setSmtpProfiles(p.smtpProfiles);
+        setSelectedSmtpProfileId(p.selectedSmtpProfileId);
         setLoaded(true);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Önizleme alınamadı");
@@ -60,6 +81,7 @@ export function OutreachButton({
     start(async () => {
       const r = await sendOutreachEmail({
         leadId,
+        smtpProfileId: selectedSmtpProfileId ?? undefined,
         toEmail: to.trim(),
         subject: subject.trim(),
         body: body.trim(),
@@ -70,6 +92,17 @@ export function OutreachButton({
       } else {
         toast.error(r.error);
       }
+    });
+  };
+
+  const onSmtpProfileChange = (value: string) => {
+    const nextProfileId = value === "default" ? null : value;
+    setSelectedSmtpProfileId(nextProfileId);
+    start(async () => {
+      const p = await getOutreachPreview(leadId, nextProfileId ?? undefined);
+      setHasSettings(p.hasSettings);
+      setSmtpProfiles(p.smtpProfiles);
+      setSelectedSmtpProfileId(p.selectedSmtpProfileId);
     });
   };
 
@@ -112,6 +145,22 @@ export function OutreachButton({
           </div>
         ) : (
           <div className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="smtpProfile">SMTP Profili</Label>
+              <Select value={selectedSmtpValue} onValueChange={onSmtpProfileChange}>
+                <SelectTrigger id="smtpProfile">
+                  <SelectValue placeholder="Profil seç" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Varsayılan SMTP</SelectItem>
+                  {smtpProfiles.map((profile) => (
+                    <SelectItem key={profile.id} value={profile.id}>
+                      {profile.name} ({profile.fromEmail})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="to">Alıcı</Label>
               <Input

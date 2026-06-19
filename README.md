@@ -1,36 +1,97 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FinderCust Demo Web
 
-## Getting Started
+Google Maps üzerinden işletme keşfi, CRM pipeline, AI web sitesi üretimi ve SMTP outreach otomasyonu içeren canlı demo uygulaması.
 
-First, run the development server:
+## Demo Giriş
+
+| Alan | Değer |
+|------|-------|
+| E-posta | `demo@findercust.com` |
+| Şifre | `Demo123!` |
+
+## Hızlı Başlangıç (Yerel)
 
 ```bash
+cp .env.example .env
+# .env içinde AUTH_SECRET üretin: openssl rand -base64 32
+
+npm install
+npx prisma migrate deploy
+npm run db:seed
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Uygulama: http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Canlı Yayın (Docker / Submail SMTP)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+SMTP outreach için Ayarlar ekranından Submail veya herhangi bir SMTP sağlayıcısı ekleyin. Çoklu SMTP profili ve otomasyon motoru desteklenir.
 
-## Learn More
+### 1. Ortam değişkenleri
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+cp .env.example .env
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Zorunlu:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `AUTH_SECRET` — `openssl rand -base64 32`
+- `GOOGLE_MAPS_API_KEY` — Discover araması için (opsiyonel demo modunda)
 
-## Deploy on Vercel
+### 2. Docker Compose ile deploy
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+docker compose up -d --build
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+İlk açılışta migration + demo seed otomatik çalışır (`DEMO_SEED=true`).
+
+### 3. Reverse proxy (ör. Nginx + subdomain)
+
+```nginx
+server {
+  listen 443 ssl;
+  server_name demo.sizindomain.com;
+
+  location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
+
+`AUTH_TRUST_HOST=true` production için gereklidir.
+
+## Özellikler
+
+- **Discover** — Google Places ile işletme arama
+- **Leads & Pipeline** — CRM ve durum takibi
+- **Projects** — AI ile web sitesi üretimi (Gemini veya şablon)
+- **Outreach** — Tekil/toplu e-posta, çoklu SMTP profili
+- **Otomasyon** — Yeni lead'lere sıralı SMTP rotasyonu ile mail gönderimi
+
+## Komutlar
+
+| Komut | Açıklama |
+|-------|----------|
+| `npm run dev` | Geliştirme sunucusu |
+| `npm run build` | Production build |
+| `npm run db:migrate` | Migration |
+| `npm run db:seed` | Demo verisi yükle |
+| `npm run db:reset` | DB sıfırla + seed |
+
+## Güvenlik Notları
+
+- `.env` dosyasını asla commit etmeyin
+- Production'da güçlü `AUTH_SECRET` kullanın
+- SMTP şifreleri veritabanında saklanır; production için şifreleme önerilir
+- Demo ortamında `GEMINI_FORCE_TEMPLATE=true` API maliyetini düşürür
+
+## Repo
+
+GitHub: [findercust-demo-web](https://github.com/aspeww/findercust-demo-web)

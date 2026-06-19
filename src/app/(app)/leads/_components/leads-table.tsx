@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -15,6 +15,8 @@ import {
   ExternalLink,
   ChevronUp,
   ChevronDown,
+  Play,
+  Square,
 } from "lucide-react";
 import {
   Table,
@@ -50,6 +52,15 @@ import {
   updateLeadStatus,
 } from "../actions";
 import { sendBulkOutreach } from "../../settings/actions";
+import {
+  DEFAULT_BATCH_MAX,
+  DEFAULT_BATCH_MIN,
+  getAutomationSnapshot,
+  startAutomation,
+  stopAutomation,
+  subscribeAutomation,
+  type AutomationSnapshot,
+} from "./automation-engine";
 
 type Lead = {
   id: string;
@@ -81,6 +92,31 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<string>("");
+  const [automation, setAutomation] = useState<AutomationSnapshot>(
+    getAutomationSnapshot(),
+  );
+  const [automationMinBatch, setAutomationMinBatch] = useState(String(DEFAULT_BATCH_MIN));
+  const [automationMaxBatch, setAutomationMaxBatch] = useState(String(DEFAULT_BATCH_MAX));
+
+  useEffect(() => subscribeAutomation(setAutomation), []);
+
+  const onStartAutomation = async () => {
+    const result = await startAutomation({
+      minBatch: Number(automationMinBatch),
+      maxBatch: Number(automationMaxBatch),
+    });
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success("Otomasyon arka planda başlatıldı");
+  };
+
+  const onStopAutomation = () => {
+    stopAutomation("Kullanıcı otomasyonu durdurdu.");
+    toast.message("Otomasyon durduruldu");
+    router.refresh();
+  };
 
   const cities = Array.from(
     new Set(leads.map((l) => l.city).filter(Boolean) as string[]),
@@ -297,6 +333,56 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
             </a>
           </Button>
         </div>
+      </div>
+
+      <div className="rounded-md border bg-muted/30 p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium">SMTP Otomasyonu</span>
+          <Input
+            type="number"
+            min={15}
+            max={25}
+            value={automationMinBatch}
+            onChange={(e) => setAutomationMinBatch(e.target.value)}
+            className="h-9 w-[92px]"
+            aria-label="Min batch"
+          />
+          <Input
+            type="number"
+            min={15}
+            max={25}
+            value={automationMaxBatch}
+            onChange={(e) => setAutomationMaxBatch(e.target.value)}
+            className="h-9 w-[92px]"
+            aria-label="Max batch"
+          />
+          {!automation.running ? (
+            <Button size="sm" onClick={() => void onStartAutomation()}>
+              <Play className="size-4" />
+              Otomasyonu Başlat
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={onStopAutomation}
+            >
+              <Square className="size-4" />
+              Durdur
+            </Button>
+          )}
+
+          <span className="text-xs text-muted-foreground">
+            Profil sayısı: {automation.profilesCount}
+          </span>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">{automation.status}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Gönderilen: {automation.stats.sent} • Hata: {automation.stats.failed} • Atlanan: {automation.stats.skipped} • Döngü: {automation.stats.cycles}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Akış: Her SMTP için {automationMinBatch}-{automationMaxBatch} lead, profil geçişinde 3 dk, tur tamamlanınca 5 dk bekler.
+        </p>
       </div>
 
       {/* Bulk actions bar */}

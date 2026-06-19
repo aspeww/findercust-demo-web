@@ -144,6 +144,31 @@ const activitySchema = z.object({
   content: z.string().min(1, "İçerik gerekli"),
 });
 
+const automationLimitSchema = z.coerce.number().int().min(1).max(500).default(200);
+
+export async function getNewLeadIdsForAutomation(limit?: number): Promise<string[]> {
+  const userId = await requireUserId();
+  const parsedLimit = automationLimitSchema.safeParse(limit);
+  const take = parsedLimit.success ? parsedLimit.data : 200;
+
+  const leads = await prisma.lead.findMany({
+    where: {
+      ownerId: userId,
+      status: "new",
+      email: {
+        not: null,
+      },
+    },
+    orderBy: { createdAt: "asc" },
+    take,
+    select: { id: true, email: true },
+  });
+
+  return leads
+    .filter((lead) => (lead.email ?? "").trim().length > 0)
+    .map((lead) => lead.id);
+}
+
 export async function addActivity(formData: FormData) {
   const userId = await requireUserId();
   const parsed = activitySchema.safeParse(Object.fromEntries(formData));

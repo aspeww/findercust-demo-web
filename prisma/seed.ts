@@ -1,10 +1,15 @@
 /**
- * Seed script — populates the DB with realistic Turkish business mock data.
+ * Seed script — demo kullanıcısı + örnek Türk işletme verileri.
  * Run with: npm run db:seed
  */
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
+
+const DEMO_EMAIL = (process.env.DEMO_USER_EMAIL ?? "demo@findercust.com").toLowerCase();
+const DEMO_PASSWORD = process.env.DEMO_USER_PASSWORD ?? "Demo123!";
+const DEMO_NAME = "FinderCust Demo";
 
 const CITIES = [
   "İstanbul",
@@ -55,10 +60,8 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function maybeWebsite(name: string): string | null {
-  // 60% no website (our target leads), 40% has website
-  if (Math.random() < 0.6) return null;
-  const slug = name
+function slugify(name: string): string {
+  return name
     .toLowerCase()
     .replace(/ç/g, "c")
     .replace(/ğ/g, "g")
@@ -68,7 +71,15 @@ function maybeWebsite(name: string): string | null {
     .replace(/ü/g, "u")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
-  return `https://www.${slug}.com.tr`;
+}
+
+function maybeWebsite(name: string): string | null {
+  if (Math.random() < 0.6) return null;
+  return `https://www.${slugify(name)}.com.tr`;
+}
+
+function demoEmail(name: string, index: number): string {
+  return `${slugify(name)}-${index}@demo.findercust.local`;
 }
 
 function phone(): string {
@@ -79,21 +90,32 @@ function phone(): string {
   return `+90 ${op} ${a} ${b} ${c}`;
 }
 
+async function ensureDemoUser() {
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
+  const user = await prisma.user.upsert({
+    where: { email: DEMO_EMAIL },
+    update: {
+      name: DEMO_NAME,
+      passwordHash,
+      role: "admin",
+    },
+    create: {
+      email: DEMO_EMAIL,
+      name: DEMO_NAME,
+      passwordHash,
+      role: "admin",
+    },
+  });
+  console.log(`👤 Demo kullanıcı: ${user.email} / ${DEMO_PASSWORD}`);
+  return user;
+}
+
 async function main() {
   console.log("🌱 Seeding database...");
+  const owner = await ensureDemoUser();
 
-  // Find any existing user to assign leads to (you'll be the admin).
-  const owner = await prisma.user.findFirst({ orderBy: { createdAt: "asc" } });
-  if (!owner) {
-    console.log(
-      "⚠️  No user found — please register first at /register, then run seed again.",
-    );
-    return;
-  }
-  console.log(`👤 Assigning to user: ${owner.email}`);
-
-  // Wipe existing leads/projects/activities for this owner (safe re-seed).
   await prisma.activity.deleteMany({ where: { lead: { ownerId: owner.id } } });
+  await prisma.emailLog.deleteMany({ where: { userId: owner.id } });
   await prisma.project.deleteMany({ where: { ownerId: owner.id } });
   await prisma.lead.deleteMany({ where: { ownerId: owner.id } });
 
@@ -110,6 +132,7 @@ async function main() {
       name: businessName,
       category: cat,
       phone: phone(),
+      email: demoEmail(businessName, i),
       website,
       address: `${pick(["Atatürk", "Cumhuriyet", "İstiklal", "Bağdat", "Barbaros"])} Cd. No:${Math.floor(Math.random() * 200) + 1}`,
       city,
@@ -128,7 +151,6 @@ async function main() {
   await prisma.lead.createMany({ data: leads });
   console.log(`✅ Created ${leads.length} leads`);
 
-  // Add activities to ~half of them
   const allLeads = await prisma.lead.findMany({ where: { ownerId: owner.id } });
   let activityCount = 0;
   for (const lead of allLeads) {
@@ -155,7 +177,6 @@ async function main() {
   }
   console.log(`✅ Created ${activityCount} activities`);
 
-  // Create a few projects from won leads
   const wonLeads = allLeads.filter((l) => l.status === "won");
   let projectCount = 0;
   for (const lead of wonLeads) {
@@ -170,7 +191,7 @@ async function main() {
         currency: "TRY",
         liveUrl:
           Math.random() > 0.5
-            ? `https://${lead.name.toLowerCase().replace(/\s+/g, "-")}.findercust.com`
+            ? `https://${slugify(lead.name)}.findercust.com`
             : null,
       },
     });
