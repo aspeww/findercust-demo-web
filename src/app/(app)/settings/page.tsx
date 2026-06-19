@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getDefaultBodyTemplate } from "@/lib/mail";
+import { isDemoMode } from "@/lib/demo";
 import type { SmtpProfile } from "./actions";
 import { SettingsForm } from "./_components/settings-form";
 
@@ -54,17 +55,21 @@ export default async function SettingsPage() {
     where: { userId: session.user.id },
   });
   const smtpProfiles = parseSmtpProfiles(setting?.smtpProfilesJson);
+  const demoMode = isDemoMode();
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Ayarlar</h1>
         <p className="text-sm text-muted-foreground">
-          SMTP yapılandırman + işletmelere otomatik gönderilecek mail şablonu.
+          {demoMode
+            ? "Demo modunda SMTP ve mail gönderimi devre dışıdır."
+            : "SMTP yapılandırman + işletmelere otomatik gönderilecek mail şablonu."}
         </p>
       </div>
 
       <SettingsForm
+        demoMode={demoMode}
         initial={{
           smtpHost: setting?.smtpHost ?? "",
           smtpPort: setting?.smtpPort ?? 587,

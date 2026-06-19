@@ -28,6 +28,8 @@ import {
   sendOutreachEmail,
 } from "@/app/(app)/settings/actions";
 
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+
 type SmtpProfileOption = {
   id: string;
   name: string;
@@ -105,6 +107,8 @@ export function OutreachButton({
       setSelectedSmtpProfileId(p.selectedSmtpProfileId);
     });
   };
+
+  if (DEMO_MODE) return null;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

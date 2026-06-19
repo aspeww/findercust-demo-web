@@ -79,7 +79,13 @@ type Lead = {
 type SortKey = "name" | "city" | "category" | "status" | "rating" | "createdAt";
 type SortDir = "asc" | "desc";
 
-export function LeadsTable({ leads }: { leads: Lead[] }) {
+export function LeadsTable({
+  leads,
+  demoMode = false,
+}: {
+  leads: Lead[];
+  demoMode?: boolean;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [search, setSearch] = useState("");
@@ -339,6 +345,7 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
         </div>
       </div>
 
+      {!demoMode && (
       <div className="rounded-md border bg-muted/30 p-3">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium">SMTP Otomasyonu</span>
@@ -388,6 +395,7 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
           Akış: Her SMTP için {automationMinBatch}-{automationMaxBatch} lead, profil geçişinde 3 dk, tur tamamlanınca 5 dk bekler.
         </p>
       </div>
+      )}
 
       {/* Bulk actions bar */}
       {selected.size > 0 && (
@@ -415,15 +423,17 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
           >
             Uygula
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={pending}
-            onClick={onBulkOutreach}
-          >
-            <Mail className="size-4" />
-            Seçilene mail gönder
-          </Button>
+          {!demoMode && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={pending}
+              onClick={onBulkOutreach}
+            >
+              <Mail className="size-4" />
+              Seçilene mail gönder
+            </Button>
+          )}
           <Button
             size="sm"
             variant="destructive"

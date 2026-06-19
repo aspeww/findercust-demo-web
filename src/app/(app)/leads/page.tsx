@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isDemoMode } from "@/lib/demo";
 import { LeadsTable } from "./_components/leads-table";
 import { NewLeadDialog } from "./_components/new-lead-dialog";
 
@@ -39,7 +40,7 @@ export default async function LeadsPage() {
         </div>
         <NewLeadDialog />
       </div>
-      <LeadsTable leads={leads} />
+      <LeadsTable leads={leads} demoMode={isDemoMode()} />
     </div>
   );
 }

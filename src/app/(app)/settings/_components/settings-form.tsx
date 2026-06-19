@@ -33,7 +33,13 @@ type Initial = {
   smtpProfiles: SmtpProfile[];
 };
 
-export function SettingsForm({ initial }: { initial: Initial }) {
+export function SettingsForm({
+  initial,
+  demoMode = false,
+}: {
+  initial: Initial;
+  demoMode?: boolean;
+}) {
   const [state, formAction, pending] = useActionState<
     SettingsState,
     FormData
@@ -141,6 +147,18 @@ export function SettingsForm({ initial }: { initial: Initial }) {
 
   return (
     <form action={formAction} className="space-y-6">
+      {demoMode ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>SMTP Yapılandırması</CardTitle>
+            <CardDescription>
+              Demo modunda SMTP ayarları ve e-posta gönderimi kapalıdır.
+              Canlı sürümde Gmail, Submail veya başka bir SMTP sağlayıcısı
+              bağlanabilir.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      ) : (
       <Card>
         <CardHeader>
           <CardTitle>SMTP Yapılandırması</CardTitle>
@@ -302,19 +320,26 @@ export function SettingsForm({ initial }: { initial: Initial }) {
           </div>
         </CardContent>
       </Card>
+      )}
 
       <Card>
         <CardHeader>
           <CardTitle>Mail Şablonu</CardTitle>
           <CardDescription>
-            Değişkenler:{" "}
-            <code className="rounded bg-muted px-1">{"{{name}}"}</code>{" "}
-            <code className="rounded bg-muted px-1">{"{{category}}"}</code>{" "}
-            <code className="rounded bg-muted px-1">{"{{city}}"}</code>{" "}
-            <code className="rounded bg-muted px-1">{"{{phone}}"}</code>{" "}
-            <code className="rounded bg-muted px-1">{"{{website}}"}</code>{" "}
-            <code className="rounded bg-muted px-1">{"{{websiteStatusLine}}"}</code>{" "}
-            <code className="rounded bg-muted px-1">{"{{improvementLine}}"}</code>
+            {demoMode
+              ? "Örnek şablon — demo modunda düzenlenemez."
+              : (
+                <>
+                  Değişkenler:{" "}
+                  <code className="rounded bg-muted px-1">{"{{name}}"}</code>{" "}
+                  <code className="rounded bg-muted px-1">{"{{category}}"}</code>{" "}
+                  <code className="rounded bg-muted px-1">{"{{city}}"}</code>{" "}
+                  <code className="rounded bg-muted px-1">{"{{phone}}"}</code>{" "}
+                  <code className="rounded bg-muted px-1">{"{{website}}"}</code>{" "}
+                  <code className="rounded bg-muted px-1">{"{{websiteStatusLine}}"}</code>{" "}
+                  <code className="rounded bg-muted px-1">{"{{improvementLine}}"}</code>
+                </>
+              )}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -324,6 +349,8 @@ export function SettingsForm({ initial }: { initial: Initial }) {
               id="defaultSubject"
               name="defaultSubject"
               defaultValue={initial.defaultSubject}
+              readOnly={demoMode}
+              disabled={demoMode}
             />
           </div>
           <div className="space-y-2">
@@ -334,6 +361,8 @@ export function SettingsForm({ initial }: { initial: Initial }) {
               rows={14}
               defaultValue={initial.defaultBody}
               className="font-mono text-xs"
+              readOnly={demoMode}
+              disabled={demoMode}
             />
           </div>
           <div className="space-y-2">
@@ -344,11 +373,14 @@ export function SettingsForm({ initial }: { initial: Initial }) {
               rows={4}
               defaultValue={initial.signature}
               placeholder="--&#10;Ad Soyad&#10;FinderCust&#10;web@findercust.com"
+              readOnly={demoMode}
+              disabled={demoMode}
             />
           </div>
         </CardContent>
       </Card>
 
+      {!demoMode && (
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Input
@@ -381,6 +413,7 @@ export function SettingsForm({ initial }: { initial: Initial }) {
           Kaydet
         </Button>
       </div>
+      )}
     </form>
   );
 }
