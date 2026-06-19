@@ -29,19 +29,16 @@ Uygulama: http://localhost:3000
 
 1. Repoyu GitHub'a push edin
 2. [Vercel](https://vercel.com) → Import Project
-3. Ortam değişkenlerini ekleyin (`.env.example` referans):
+3. Ortam değişkenlerini ekleyin:
 
-| Değişken | Değer |
-|----------|-------|
-| `DATABASE_URL` | `file:./prisma/demo.db` |
-| `AUTH_SECRET` | `openssl rand -base64 32` ile üretin |
-| `AUTH_TRUST_HOST` | `true` |
-| `DEMO_MODE` | `true` |
-| `NEXT_PUBLIC_DEMO_MODE` | `true` |
-| `DEMO_SEED` | `true` |
-| `DEMO_USER_EMAIL` | `demo@findercust.com` |
-| `DEMO_USER_PASSWORD` | `Demo123!` |
-| `GEMINI_FORCE_TEMPLATE` | `true` |
+| Değişken | Zorunlu | Değer |
+|----------|---------|-------|
+| `AUTH_SECRET` | **Evet** | `openssl rand -base64 32` ile üretin |
+| `DATABASE_URL` | Hayır | `vercel.json` içinde varsayılan tanımlı |
+| `DEMO_MODE` | Hayır | `vercel.json` içinde `true` |
+| `NEXT_PUBLIC_DEMO_MODE` | Hayır | `vercel.json` içinde `true` |
+
+Diğer demo değişkenleri `vercel.json` içinde hazır gelir. Sadece **`AUTH_SECRET`** Vercel panelinden eklemeniz gerekir (giriş için zorunlu).
 
 Build komutu `vercel.json` içinde tanımlıdır: migration + seed + Next.js build.
 

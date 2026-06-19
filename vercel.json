@@ -1,5 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run vercel-build",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "env": {
+    "DATABASE_URL": "file:./prisma/demo.db",
+    "DEMO_MODE": "true",
+    "NEXT_PUBLIC_DEMO_MODE": "true",
+    "DEMO_SEED": "true",
+    "DEMO_USER_EMAIL": "demo@findercust.com",
+    "DEMO_USER_PASSWORD": "Demo123!",
+    "GEMINI_FORCE_TEMPLATE": "true",
+    "AUTH_TRUST_HOST": "true"
+  }
 }
