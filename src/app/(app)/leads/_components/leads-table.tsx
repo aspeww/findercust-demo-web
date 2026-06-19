@@ -345,10 +345,14 @@ export function LeadsTable({
         </div>
       </div>
 
-      {!demoMode && (
       <div className="rounded-md border bg-muted/30 p-3">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium">SMTP Otomasyonu</span>
+          {demoMode && (
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-900">
+              Demo — kullanılamaz
+            </span>
+          )}
           <Input
             type="number"
             min={15}
@@ -357,6 +361,7 @@ export function LeadsTable({
             onChange={(e) => setAutomationMinBatch(e.target.value)}
             className="h-9 w-[92px]"
             aria-label="Min batch"
+            disabled={demoMode}
           />
           <Input
             type="number"
@@ -366,9 +371,14 @@ export function LeadsTable({
             onChange={(e) => setAutomationMaxBatch(e.target.value)}
             className="h-9 w-[92px]"
             aria-label="Max batch"
+            disabled={demoMode}
           />
           {!automation.running ? (
-            <Button size="sm" onClick={() => void onStartAutomation()}>
+            <Button
+              size="sm"
+              onClick={() => void onStartAutomation()}
+              disabled={demoMode}
+            >
               <Play className="size-4" />
               Otomasyonu Başlat
             </Button>
@@ -377,6 +387,7 @@ export function LeadsTable({
               size="sm"
               variant="destructive"
               onClick={onStopAutomation}
+              disabled={demoMode}
             >
               <Square className="size-4" />
               Durdur
@@ -387,15 +398,24 @@ export function LeadsTable({
             Profil sayısı: {automation.profilesCount}
           </span>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">{automation.status}</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Gönderilen: {automation.stats.sent} • Hata: {automation.stats.failed} • Atlanan: {automation.stats.skipped} • Döngü: {automation.stats.cycles}
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Akış: Her SMTP için {automationMinBatch}-{automationMaxBatch} lead, profil geçişinde 3 dk, tur tamamlanınca 5 dk bekler.
-        </p>
+        {demoMode ? (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Yeni lead&apos;lere kayıtlı SMTP profilleriyle sırayla tanıtım maili
+            gönderir. Her profil için 15–25 lead seçer, profiller arası 3 dk,
+            tur sonunda 5 dk bekler. Demo modunda yalnızca önizleme amaçlıdır.
+          </p>
+        ) : (
+          <>
+            <p className="mt-2 text-xs text-muted-foreground">{automation.status}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Gönderilen: {automation.stats.sent} • Hata: {automation.stats.failed} • Atlanan: {automation.stats.skipped} • Döngü: {automation.stats.cycles}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Akış: Her SMTP için {automationMinBatch}-{automationMaxBatch} lead, profil geçişinde 3 dk, tur tamamlanınca 5 dk bekler.
+            </p>
+          </>
+        )}
       </div>
-      )}
 
       {/* Bulk actions bar */}
       {selected.size > 0 && (
